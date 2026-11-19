@@ -71,7 +71,10 @@ public:
         badCharHeuristic();
     }
 
-
+    //геттери
+    std::string getText() { return text; }
+    std::string getPattern() { return pattern; }
+    std::vector<int> getStopSign() { return stop_sign; }
 };
 
 
