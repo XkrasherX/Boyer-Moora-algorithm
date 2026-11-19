@@ -9,17 +9,19 @@ private:
     std::string text;
     std::string pattern;
 
+    //чи збігається символ тексту 'c' з позицією 'i' шаблону
+    bool matchAt(int i, char c) { return pattern[i] == MY_CHAR || pattern[i] == c; }
+
     //найправіша позиція в слові
-    int lastOccurrence(char c) const
+    int lastOccurrence(char c)
     {
-        for (int i = (int)pattern.size() - 1; i >= 0; i--)
-            if (pattern[i] == c)
-                return i;
+        for (int i = (int)pattern.size() - 1; i >= 0; i--) { if (matchAt(i, c)) return i; }
+        
         return -1;
     }
 
     //зсув за стоп-символом x, що зустрівся на позиції j у слові.
-    int shiftByStopSymbol(char x, int j) const
+    int shiftByStopSymbol(char x, int j)
     {
         int k = lastOccurrence(x);
 
@@ -42,8 +44,9 @@ public:
     //геттери
     std::string getText() const { return text; }
     std::string getPattern() const { return pattern; }
+    std::string getSequence(int index) const { return text.substr(index, pattern.size()); }
 
-    std::vector<int> search() const
+    std::vector<int> search()
     {
         std::vector<int> matches; //індекcи збігів
         int m = pattern.size(); //розмір слова
@@ -58,7 +61,7 @@ public:
         while (shift <= n - m)
         {
             int j = m - 1; //порівняння з кінця слова
-            while (j >= 0 && pattern[j] == text[shift + j]) j--;
+            while (j >= 0 && matchAt(j, text[shift + j])) j--;
 
             //повний збіг
             if (j < 0) {
