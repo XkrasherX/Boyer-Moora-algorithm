@@ -72,9 +72,9 @@ public:
     }
 
     //геттери
-    std::string getText() { return text; }
-    std::string getPattern() { return pattern; }
-    std::vector<int> getStopSign() { return stop_sign; }
+    std::string getText() const { return text; }
+    std::string getPattern() const { return pattern; }
+    std::vector<int> getStopSign() const { return stop_sign; }
 };
 
 
