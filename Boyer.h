@@ -5,9 +5,19 @@
 #include <vector>
 
 class Boyer_Moore {
-    private:
-        string text;
-        string pattern;
+private:
+    std::string text;
+    std::string pattern;
+    std::vector<int> stop_sign;
+
+public:
+    Boyer_Moore(std::string text, std::string pattern) {
+        this->text = text;
+        this->pattern = pattern;
+        
+    }
+
+
 };
 
 
@@ -32,7 +42,7 @@ class Boyer_Moore {
 
 #define NO_OF_CHARS 256
 
-using namespace std;
+
 
 // The preprocessing function for Boyer Moore's
 // bad character heuristic
@@ -79,7 +89,6 @@ void search(const string& txt, const string& pat)
         the above loop */
         if (j < 0)
         {
-            cout << "Pattern occurs at shift = " << s << endl;
 
             /* Shift the pattern so that the next
             character in the text aligns with the last
