@@ -4,15 +4,28 @@
 
 const char MY_CHAR = '?';
 
+
+
+
 class Boyer_Moore {
+
+public:
+    struct StopInfo {
+        char stop_sign;     //стоп-символ
+        int textPos;     //позиція в тексті (shift + j)
+        int patternPos;  //позиція у слові (j)
+        int shift;       //на скільки зсунули слово
+    };
+
 private:
     std::string text;
     std::string pattern;
+    std::vector<StopInfo> stops;
 
-    //С‡Рё Р·Р±С–РіР°С”С‚СЊСЃСЏ СЃРёРјРІРѕР» С‚РµРєСЃС‚Сѓ 'c' Р· РїРѕР·РёС†С–С”СЋ 'i' С€Р°Р±Р»РѕРЅСѓ
+    //чи збігається символ тексту 'c' з позицією 'i' шаблону
     bool matchAt(int i, char c) { return pattern[i] == MY_CHAR || pattern[i] == c; }
 
-    //РЅР°Р№РїСЂР°РІС–С€Р° РїРѕР·РёС†С–СЏ РІ СЃР»РѕРІС–
+    //найправіша позиція в слові
     int lastOccurrence(char c)
     {
         for (int i = (int)pattern.size() - 1; i >= 0; i--) { if (matchAt(i, c)) return i; }
@@ -20,59 +33,70 @@ private:
         return -1;
     }
 
-    //Р·СЃСѓРІ Р·Р° СЃС‚РѕРї-СЃРёРјРІРѕР»РѕРј x, С‰Рѕ Р·СѓСЃС‚СЂС–РІСЃСЏ РЅР° РїРѕР·РёС†С–С— j Сѓ СЃР»РѕРІС–.
+    //зсув за стоп-символом x, що зустрівся на позиції j у слові.
     int shiftByStopSymbol(char x, int j)
     {
         int k = lastOccurrence(x);
 
-        //k= m, СЏРєС‰Рѕ РЅРµСЃРїС–РІРїР°РґС–РЅРЅСЏ РЅР° РѕСЃС‚Р°РЅРЅСЊРѕРјСѓ СЃРёРјРІРѕР»С–
+        //k= m, якщо неспівпадіння на останньому символі
         if (k == -1) return j + 1;
         
-        //k < j -> Р·СЃСѓРІ РЅР° j - k
+        //k < j -> зсув на j - k
         if (k < j) return j - k;
         
-        //k > j -> Р·СЃСѓРІ РЅР° 1
+        //k > j -> зсув на 1
         return 1;
     }
 
 public:
-    Boyer_Moore(std::string& text, std::string& pattern) {
+    
+
+    bool createObject(std::string& text, std::string& pattern) {
+        if (text.empty() || pattern.empty()) return false;
         this->text = text;
         this->pattern = pattern;
+        return true;
     }
 
-    //РіРµС‚С‚РµСЂРё
+    //геттери
     std::string getText() const { return text; }
     std::string getPattern() const { return pattern; }
-    std::string getSequence(int index) const { return text.substr(index, pattern.size()); }
+    //std::string getSequence(int index) const { return text.substr(index, pattern.size()); }
+    std::vector<StopInfo> getStops() const { return stops; }
+
 
     std::vector<int> search()
     {
-        std::vector<int> matches; //С–РЅРґРµРєcРё Р·Р±С–РіС–РІ
-        int m = pattern.size(); //СЂРѕР·РјС–СЂ СЃР»РѕРІР°
-        int n = text.size(); //СЂРѕР·РјС–СЂ С‚РµРєСЃС‚Сѓ
+        stops.clear();
+        std::vector<int> matches; //індекcи збігів
+        int m = pattern.size(); //розмір слова
+        int n = text.size(); //розмір тексту
 
         if (m == 0 || m > n)
             return matches;
 
-        int shift = 0; //Р·РјС–С‰РµРЅРЅСЏ СЃР»РѕРІР°
+        int shift = 0; //зміщення слова
 
-        //РїРѕРєРё Р·РјС–С‰РµРЅРЅСЏ РјРµРЅС€Рµ Р·Р° С‚РµРєСЃ-СЃР»РѕРІРѕ
+        //поки зміщення менше за текс-слово
         while (shift <= n - m)
         {
-            int j = m - 1; //РїРѕСЂС–РІРЅСЏРЅРЅСЏ Р· РєС–РЅС†СЏ СЃР»РѕРІР°
+            int j = m - 1; //порівняння з кінця слова
             while (j >= 0 && matchAt(j, text[shift + j])) j--;
 
-            //РїРѕРІРЅРёР№ Р·Р±С–Рі
+            //повний збіг
             if (j < 0) {
                 matches.push_back(shift);
                 if (shift + m >= n) break;
 
-                int k = lastOccurrence(text[shift + m]); // СЃРёРјРІРѕР» С‚РµРєСЃС‚Сѓ РѕРґСЂР°Р·Сѓ Р·Р° СЃР»РѕРІРѕРј С‚РµР¶ СЂРѕР·РіР»СЏРґР°С”РјРѕ СЏРє СЃС‚РѕРї-СЃРёРјРІРѕР»
-                shift += m - k; // k = -1 -> m + 1, С–РЅР°РєС€Рµ >= 1
+                int k = lastOccurrence(text[shift + m]); // символ тексту одразу за словом теж розглядаємо як стоп-символ
+                shift += m - k; // k = -1 -> m + 1, інакше >= 1
             }
-            //РЅРµСЃРїС–РІРїР°РґС–РЅРЅСЏ РЅР° СЃРёРјРІРѕР»С– text[shift + j]
-            else { shift += shiftByStopSymbol(text[shift + j], j); }
+            //неспівпадіння на символі text[shift + j]
+            else {
+                int d = shiftByStopSymbol(text[shift + j], j);
+                stops.push_back({ text[shift + j],shift + j,j, d});
+                shift += d;
+            }
         }
         return matches;
     }

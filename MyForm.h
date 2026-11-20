@@ -1,5 +1,9 @@
 #pragma once
 
+#include <msclr/marshal_cppstd.h>
+#include <iostream>
+#include "Boyer.h"
+
 namespace lab10 {
 
 	using namespace System;
@@ -8,6 +12,27 @@ namespace lab10 {
 	using namespace System::Windows::Forms;
 	using namespace System::Data;
 	using namespace System::Drawing;
+	using namespace std;
+
+	//функція для кодування
+	string toUtf8(String^ s) {
+		cli::array<Byte>^ bytes = System::Text::Encoding::GetEncoding(1251)->GetBytes(s);
+		string result;
+		result.reserve(bytes->Length);
+		for (int i = 0; i < bytes->Length; i++) {
+			result += (char)bytes[i];
+		}
+		return result;
+	}
+
+	//інша функція для кодування
+	String^ fromUtf8(const string& s) {
+		cli::array<Byte>^ bytes = gcnew cli::array<Byte>((int)s.size());
+		for (int i = 0; i < (int)s.size(); i++) {
+			bytes[i] = (unsigned char)s[i];
+		}
+		return System::Text::Encoding::GetEncoding(1251)->GetString(bytes);
+	}
 
 	/// <summary>
 	/// Summary for MyForm
@@ -18,9 +43,7 @@ namespace lab10 {
 		MyForm(void)
 		{
 			InitializeComponent();
-			//
-			//TODO: Add the constructor code here
-			//
+			object = new Boyer_Moore;
 		}
 
 	protected:
@@ -33,7 +56,9 @@ namespace lab10 {
 			{
 				delete components;
 			}
+			object = nullptr;
 		}
+	private: Boyer_Moore* object;
 	private: System::Windows::Forms::Label^ EnterTextLabel;
 	protected:
 	private: System::Windows::Forms::TextBox^ EnterTextTextBox;
@@ -77,7 +102,7 @@ namespace lab10 {
 			this->EnterTextLabel->Name = L"EnterTextLabel";
 			this->EnterTextLabel->Size = System::Drawing::Size(175, 29);
 			this->EnterTextLabel->TabIndex = 0;
-			this->EnterTextLabel->Text = L"Р’РІРµРґС–С‚СЊ С‚РµРєСЃС‚:";
+			this->EnterTextLabel->Text = L"Введіть текст:";
 			// 
 			// EnterTextTextBox
 			// 
@@ -98,8 +123,10 @@ namespace lab10 {
 			this->ResultTextBox->Multiline = true;
 			this->ResultTextBox->Name = L"ResultTextBox";
 			this->ResultTextBox->ReadOnly = true;
+			this->ResultTextBox->ScrollBars = System::Windows::Forms::ScrollBars::Vertical;
 			this->ResultTextBox->Size = System::Drawing::Size(429, 300);
 			this->ResultTextBox->TabIndex = 2;
+			this->ResultTextBox->TextChanged += gcnew System::EventHandler(this, &MyForm::ResultTextBox_TextChanged);
 			// 
 			// ResultLabel
 			// 
@@ -110,7 +137,7 @@ namespace lab10 {
 			this->ResultLabel->Name = L"ResultLabel";
 			this->ResultLabel->Size = System::Drawing::Size(138, 29);
 			this->ResultLabel->TabIndex = 3;
-			this->ResultLabel->Text = L"Р РµР·СѓР»СЊС‚Р°С‚:";
+			this->ResultLabel->Text = L"Результат:";
 			// 
 			// FindPatternButton
 			// 
@@ -120,8 +147,9 @@ namespace lab10 {
 			this->FindPatternButton->Name = L"FindPatternButton";
 			this->FindPatternButton->Size = System::Drawing::Size(342, 50);
 			this->FindPatternButton->TabIndex = 4;
-			this->FindPatternButton->Text = L"Р—РЅР°Р№С‚Рё СЃР»РѕРІРѕ";
+			this->FindPatternButton->Text = L"Знайти слово";
 			this->FindPatternButton->UseVisualStyleBackColor = true;
+			this->FindPatternButton->Click += gcnew System::EventHandler(this, &MyForm::FindPatternButton_Click);
 			// 
 			// EnterPatterLabel
 			// 
@@ -132,7 +160,7 @@ namespace lab10 {
 			this->EnterPatterLabel->Name = L"EnterPatterLabel";
 			this->EnterPatterLabel->Size = System::Drawing::Size(181, 29);
 			this->EnterPatterLabel->TabIndex = 5;
-			this->EnterPatterLabel->Text = L"Р’РІРµРґС–С‚СЊ СЃР»РѕРІРѕ:";
+			this->EnterPatterLabel->Text = L"Введіть слово:";
 			// 
 			// EnterPatternTextBox
 			// 
@@ -151,14 +179,15 @@ namespace lab10 {
 			this->DisplayTextButton->Name = L"DisplayTextButton";
 			this->DisplayTextButton->Size = System::Drawing::Size(342, 50);
 			this->DisplayTextButton->TabIndex = 7;
-			this->DisplayTextButton->Text = L"Р’РёРІРµСЃС‚Рё С‚РµРєСЃС‚";
+			this->DisplayTextButton->Text = L"Вивести текст";
 			this->DisplayTextButton->UseVisualStyleBackColor = true;
+			this->DisplayTextButton->Click += gcnew System::EventHandler(this, &MyForm::DisplayTextButton_Click);
 			// 
 			// MyForm
 			// 
 			this->AutoScaleDimensions = System::Drawing::SizeF(9, 20);
 			this->AutoScaleMode = System::Windows::Forms::AutoScaleMode::Font;
-			this->ClientSize = System::Drawing::Size(958, 604);
+			this->ClientSize = System::Drawing::Size(967, 604);
 			this->Controls->Add(this->DisplayTextButton);
 			this->Controls->Add(this->EnterPatternTextBox);
 			this->Controls->Add(this->EnterPatterLabel);
@@ -174,5 +203,57 @@ namespace lab10 {
 
 		}
 #pragma endregion
-	};
+
+	private: System::Void ResultTextBox_TextChanged(System::Object^ sender, System::EventArgs^ e) {
+		
+	}
+
+	private: System::Void FindPatternButton_Click(System::Object^ sender, System::EventArgs^ e) {
+		ResultTextBox->Clear();
+
+		string text = toUtf8(EnterTextTextBox->Text);
+		string pattern = toUtf8(EnterPatternTextBox->Text);
+
+		if (!object->createObject(text, pattern)) {
+			MessageBox::Show(L"Введіть текст і шукане слово.", L"Помилка");
+			return;
+		}
+
+		ResultTextBox->Text = "Текст: " + Environment::NewLine + fromUtf8(object->getText()) + Environment::NewLine +
+			"Шукане слово: " + fromUtf8(object->getPattern()) + Environment::NewLine +
+			"Індекси: ";
+
+		vector<int> result = object->search();
+
+		if (result.empty()) { ResultTextBox->Text += "Немає збігів"; }
+
+		for (int i = 0; i < result.size();i++) {
+			ResultTextBox->Text += result[i] + " ";
+		}
+
+		ResultTextBox->Text += Environment::NewLine + "Стоп-символи: " + Environment::NewLine;
+
+		vector<Boyer_Moore::StopInfo> stop_symbol = object->getStops();
+
+		for (int i = 0;i <(int)stop_symbol.size();i++) {
+			Boyer_Moore::StopInfo info = stop_symbol[i];
+			String^ symbol = fromUtf8(std::string(1, info.stop_sign));
+
+			ResultTextBox->Text += "'" + symbol + "' текст: " + info.textPos.ToString() +
+				" слово: " + info.patternPos.ToString() + " зсув: " + info.shift.ToString() + Environment::NewLine;
+		}
+	}
+private: System::Void DisplayTextButton_Click(System::Object^ sender, System::EventArgs^ e) {
+	ResultTextBox->Clear();
+
+	if (object->getText().empty()) {
+		MessageBox::Show("Введіть текст","Помилка");
+		return;
+	}
+
+
+	ResultTextBox->Text += "Текст: " + Environment::NewLine + fromUtf8(object->getText());
+
+}
+};
 }
